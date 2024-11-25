@@ -1,14 +1,17 @@
 
-## RSI參數設定
-rsiPeriod6 <- 6
-rsiPeriod12 <- 12
+##MA預設 MA5, MA10, MA20, MA50, MA60, MA90
+kMA <- c(5, 10, 20, 50, 60, 90)
+
 ## KD參數設定
 kPeriod <- 9
 
+## RSI參數設定
+kRSI <- c(6, 12, 14)
+
+#BBbband 布林格通道
 kBBandsPeriod <-20
 kBBandsSD <-2
 
-##MA預設 MA5, MA10, MA20, MA50, MA60, MA90
 
 
 calculate_kdj <- function(stock=stock, n = 9) {
@@ -41,6 +44,30 @@ calculate_kdj <- function(stock=stock, n = 9) {
   })
 }
 
+assign_ma <- function(data, column_name, value) {
+  # 確保value是xts對象
+  if (!is.xts(value)) {
+    value <- xts(value, order.by = index(data))
+  }
+  # 使用merge合併數據
+  data <- merge(data, value)
+  # 重命名新增的列
+  colnames(data)[ncol(data)] <- column_name
+  return(data)
+}
+
+assign_ta_columnn <- function(data, column_name, value) {
+  # 確保value是xts對象
+  if (!is.xts(value)) {
+    value <- xts(value, order.by = index(data))
+  }
+  # 使用merge合併數據
+  data <- merge(data, value)
+  # 重命名新增的列
+  colnames(data)[ncol(data)] <- column_name
+  return(data)
+}
+
 stock_data_fetch <- function(symbol, start_date, end_date) {
   
   required_packages <- c("quantmod", "TTR", "PerformanceAnalytics")
@@ -55,18 +82,16 @@ stock_data_fetch <- function(symbol, start_date, end_date) {
   close <- Cl(stock)
   
   #print(close)
-  # 計算移動平均線 並存入stock data frame
-  stock$ma5 <- SMA(close, n = 5)
-  stock$ma10 <- SMA(close, n = 10)
-  stock$ma20 <- SMA(close, n = 20)
-  stock$ma50 <- SMA(close, n = 50)
-  stock$ma60 <- SMA(close, n = 60)
-  stock$ma90 <- SMA(close, n = 90)
+  # 計算各期MA
+  for(period in kMA) {
+    col_name <- paste0("ma", period)
+    stock <- assign_ma(stock, col_name, SMA(close, period))
+  }
+  
   
   # KDJ
   KDJ <- calculate_kdj(stock=stock, n=9)
   
-  head(KDJ)
   
   # stock data frame 新增K, D
   stock$K <- KDJ$K
@@ -75,9 +100,12 @@ stock_data_fetch <- function(symbol, start_date, end_date) {
   
   
   # 計算RSI
-  stock$RSI6 <- RSI(close, n = rsiPeriod6)
-  stock$RSI12 <- RSI(close, n = rsiPeriod12)
-  
+  for(period in kRSI) {
+    col_name <- paste0("rsi", period)
+    rsiData <- RSI(close, n = period)
+    stock <- assign_ta_columnn(stock, col_name, rsiData)
+  }
+  #stock$RSI6 <- RSI(close, n = rsiPeriod6)
   
   # 計算布林 (20, 2)
   bb <- BBands(close, n = kBBandsPeriod, sd = kBBandsSD)
@@ -93,7 +121,7 @@ stock_data_fetch <- function(symbol, start_date, end_date) {
 
 
 #R example
-RUN_DEMO <- FALSE
+RUN_DEMO <- TRUE
 if(RUN_DEMO) {
   
   symbol <- "2330.TW"  #設定YAHOO Finance台灣股票代碼 查詢: https://tw.stock.yahoo.com/rank/turnover
