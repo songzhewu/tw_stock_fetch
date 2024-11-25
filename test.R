@@ -2,7 +2,11 @@
 library(quantmod)
 library(TTR)
 
-base_dir = getwd()
+# 調整local端工作路徑
+#base_dir = getwd()
+base_dir = "~/Documents/R_language/stock_data_fetch_app"
+
+print(base_dir)
 
 
 # 設定工作目錄或提供絕對路徑
